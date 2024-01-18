@@ -1,4 +1,4 @@
-import { InstaFeed } from './components/InstaFeed'
+import InstaFeed  from './components/InstaFeed'
 
 function App() {
   return (

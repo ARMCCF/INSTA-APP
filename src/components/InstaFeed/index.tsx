@@ -1,41 +1,60 @@
-import axios from 'axios'
-import { useEffect, useState } from 'react';
+
+import { useEffect, useRef, useState } from 'react';
 import styles from './styles.module.css';
 
 interface IFeedItem {
   id: string;
-  media_type: "IMAGE" | "VIDEO"
+  media_type: "CAROUSEL_ALBUM" | "IMAGE" | "VIDEO";
   media_url: string;
   permalink: string;
 }
 
-export function InstaFeed() {
+export default function InstaFeed() {
   const [feedList, setFeedList] = useState<IFeedItem[]>([]);
+  const currentReq = useRef(false);
 
   async function getInstaFeed() {
-    const token = import.meta.env.VITE_INSTA_TOKEN;
-    const fields = "media_url,media_type,permalink";
-    const url = `https://graph.instagram.com/me/media?access_token=${token}&fields=${fields}`;
+    if (currentReq.current) {
+      return;
+    }
+    currentReq.current = true;
 
-    const { data } = await axios.get(url);
-    setFeedList(data.data);
+    const token = import.meta.env.VITE_INSTA_TOKEN;
+    const url = 'http://localhost:3001/posts';
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.statusText}`);
+      }
+
+      const data: IFeedItem[] = await response.json();
+      setFeedList(data);
+      console.log("Carregando JSON");
+      console.log(data);
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   useEffect(() => {
-    getInstaFeed()
+    getInstaFeed();
+    return () => {
+      currentReq.current = false; // Garante que a flag seja resetada ao desmontar o componente
+    };
   }, []);
 
   return (
     <section className={styles.container}>
       {feedList.map(item => (
         <a key={item.id} href={item.permalink} target="_blank" className={styles.item}>
-          {item.media_type === "IMAGE" ? <img src={item.media_url} /> : (
+          {["IMAGE", "CAROUSEL_ALBUM"].includes(item.media_type) ? <img src={item.media_url} alt={item.id} /> : (
             <video controls>
-              <source src={item.media_url}></source>
+              <source src={item.media_url} type="video/mp4" />
             </video>
           )}
         </a>
       ))}
     </section>
-  )
+  );
 }
